@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  user_id Int @id @default(autoincrement())
+  name String @unique
+  password String 
+  address String
+  email String 
+  DOB DateTime
+  reviews Review[] // User can have multiple reviews
+  bookCase Bookcase[]
+}
+
+model Book {
+  book_id String @id
+  name String
+  author String?
+  description String?
+  pageCount Int?
+  category String?
+  thumbnail String?
+  review Review? 
+  bookcase Bookcase? @relation(fields: [bookcase_id], references: [case_id]) // Added opposite relation field
+  bookcase_id Int? 
+}
+
+model Bookcase {
+  case_id Int @id @default(autoincrement())
+  name String
+  category String
+  user_id Int
+  books Book[] // Bookcase can have multiple books
+  user User @relation(fields: [user_id], references: [user_id])
+}
+
+model Review {
+  review_id Int @id @default(autoincrement())
+  star Int
+  text String
+  user_id Int // Foreign key to User
+  book_id String  @unique
+  user User @relation(fields: [user_id], references: [user_id])
+  book Book @relation(fields: [book_id], references: [book_id])
+}
