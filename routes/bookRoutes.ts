@@ -4,11 +4,16 @@ import {
     saveBook,
     deleteBook,
     getBooksBySearch,
+    getTopBooks,
 } from  './../controllers/bookController'
 
 const bookRouter = express.Router();
 
 bookRouter
+    .route('/')
+    .get(getTopBooks)
+
+    bookRouter
     .route('/:Query')
     .get(getBooksBySearch)
 

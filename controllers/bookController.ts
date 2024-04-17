@@ -1,14 +1,61 @@
 import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
-import { Console } from "console";
 
 const prisma = new PrismaClient();
 
+export const getTopBooks = async (req: Request, res: Response) => {
+  try {
+    // Get top 10 books from New York Times API
+    const topBooksResponse = await axios.get(
+      "https://api.nytimes.com/svc/books/v3/lists.json?list-name=hardcover-fiction&api-key=6ad84e249d054efeaefe1abb8f89df5b"
+    );
+
+    const topBooks = topBooksResponse.data.results;
+
+    const bookDetailsPromises = topBooks.map(async (book: any) => {
+
+      const googleBooksResponse = await axios.get(
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+          book.book_details[0].title
+        )}`,
+        {
+          params: {
+            key: "AIzaSyDEUzOQLfWXJpc4NtBRGDvLT9OtZK2ZP5E",
+            maxResults: 1, 
+          },
+        }
+      );
+      const googleBook = googleBooksResponse.data.items[0].volumeInfo;
+      return {
+        title: googleBook.title,
+        author: googleBook.authors ? googleBook.authors[0] : "Unknown",
+        description: googleBook.description || "No description available",
+        rating: googleBook.averageRating || "Not rated",
+        // Add more details as needed
+      };
+    });
+
+    // Wait for all details to be fetched
+    const bookDetails = await Promise.all(bookDetailsPromises);
+
+    res.status(200).json({
+      status: "Success",
+      data: bookDetails,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      status: "failure",
+      message: "error",
+    });
+  }
+};
+
 export const getBooksBySearch = async (req: Request, res: Response) => {
   try {
-    const q = req.url
-  
+    const q = req.url;
+
     const response = await axios.get(
       "https://www.googleapis.com/books/v1/volumes",
       {
@@ -46,7 +93,7 @@ export const saveBook = async (req: Request, res: Response) => {
     const response = await axios.get(
       `https://www.googleapis.com/books/v1/volumes/${bookId}?key=AIzaSyDEUzOQLfWXJpc4NtBRGDvLT9OtZK2ZP5E`
     );
-    
+
     const { id, volumeInfo } = response.data;
 
     const book = await prisma.book.create({
@@ -57,20 +104,19 @@ export const saveBook = async (req: Request, res: Response) => {
         author: volumeInfo.authors ? volumeInfo.authors[0] : null,
         description: volumeInfo.description,
         pageCount: volumeInfo.pageCount,
-        thumbnail: volumeInfo.thumbnail || 'default_thumbnail_url', // Provide a default value or handle it accordingly
+        thumbnail: volumeInfo.thumbnail || "default_thumbnail_url", // Provide a default value or handle it accordingly
         bookcase: {
           connect: { case_id: 1 },
         },
       },
     });
-    
 
     res.status(200).json({
       status: "success",
       data: book,
     });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     res.status(200).json({
       status: "Failure",
       message: "Book doest exist",
@@ -125,7 +171,6 @@ export const deleteBook = async (req: Request, res: Response) => {
       status: "success",
       data: deletedBook,
     });
-
   } catch (err) {
     res.status(404).json({
       status: "OK",
