@@ -41,7 +41,7 @@ export const getTopBooks = async (req: Request, res: Response) => {
 
     res.status(200).json({
       status: "Success",
-      data: bookDetails,
+      books: bookDetails,
     });
   } catch (error) {
     console.log(error);
